@@ -20,20 +20,32 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 //APIs
 app.post('/signup', async (req, res) => {
-    const { email, password, username, phone_number } = req.body;
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-    });
-    if (error) return res.status(400).json({ error: error.message });
+    const { first_name, surname, email, phone_number, password } = req.body;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Create profile
-    const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({ id: data.user.id, username, phone_number });
-    if (profileError) return res.status(400).json({ error: profileError.message });
+    try {
+        const display_name = `${first_name} ${surname}`; // Combine first name and surname
 
-    res.json({ user: data.user });
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    display_name,
+                    first_name,
+                    surname,
+                    phone_number,
+                },
+                emailConfirm: true, // Require email verification
+            },
+        });
+
+        if (error) throw error;
+
+        res.status(200).json({ message: 'Signup successful. Please verify your email.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/login', async (req, res) => {
